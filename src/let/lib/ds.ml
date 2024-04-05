@@ -1,3 +1,5 @@
+(* Names: Jimmy Zhang & Amane Chibana *)
+(* I pledge my honor that I have abided by the Stevens Honor System. *)
 (* This file defines expressed values and environments *)
 
 (* expressed values and environments are defined mutually recursively *)
@@ -8,6 +10,7 @@ type exp_val =
   | BoolVal of bool
   | PairVal of exp_val*exp_val
   | TupleVal of exp_val list
+  | ListVal of exp_val list
 type env =
   | EmptyEnv
   | ExtendEnv of string*exp_val*env
@@ -102,6 +105,10 @@ let bool_of_boolVal : exp_val -> bool ea_result =  function
 let list_of_tupleVal : exp_val -> (exp_val list)  ea_result =  function
   |  TupleVal l -> return l
   | _ -> error "Expected a tuple!"
+
+let list_of_listVal : exp_val -> (exp_val list) ea_result = function
+  | ListVal l -> return l 
+  | _ -> error "Expected a list!"
            
 let pair_of_pairVal : exp_val -> (exp_val*exp_val) ea_result =  function
   |  PairVal(ev1,ev2) -> return (ev1,ev2)
