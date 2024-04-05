@@ -91,6 +91,35 @@ let rec eval_expr : expr -> exp_val ea_result = fun e ->
   | BeginEnd(es) ->
     sequence (List.map eval_expr es) >>= fun l ->
     return (List.hd (List.rev l))
+  | IsEqual (e1,e2) -> 
+    eval_expr e1 >>=
+    int_of_numVal >>= fun n1 ->
+    eval_expr e2 >>=
+    int_of_numVal >>= fun n2 ->
+    return @@ BoolVal (n1 = n2)
+  | IsGT (e1, e2) -> (* check that evaluation of e1, e2 are NumVals *)
+    eval_expr e1 >>=
+    int_of_numVal >>= fun n1 ->
+    eval_expr e2 >>=
+    int_of_numVal >>= fun n2 ->
+    return @@ BoolVal (n1 > n2)
+  | IsLT (e1, e2) -> (* check that evaluation of e1, e2 are NumVals *)
+    eval_expr e1 >>=
+    int_of_numVal >>= fun n1 ->
+    eval_expr e2 >>=
+    int_of_numVal >>= fun n2 ->
+    return @@ BoolVal (n1 < n2)
+  | IsNumber(e) ->
+    eval_expr e >>=
+    int_of_numVal >>= fun n ->
+    return @@ BoolVal (true)
+  | Record(fs) ->
+    sequence (List.map process_field fs) >>= fun evs ->
+    return (RecordVal (addIds fs evs))
+  | Proj(e,id) ->
+    failwith "implement"
+  | SetField(e1,id,e2) ->
+    failwith "implement"
   | Unit -> return UnitVal
   | Debug(_e) ->
     string_of_env >>= fun str_env ->
@@ -98,7 +127,13 @@ let rec eval_expr : expr -> exp_val ea_result = fun e ->
     in (print_endline (str_env^"\n"^str_store);
     error "Reached breakpoint")
   | _ -> failwith ("Not implemented: "^string_of_expr e)
-
+and
+process_field (_id,(is_mutable,e)) =
+  eval_expr e >>= fun ev ->
+  if is_mutable
+  then return (RefVal (Store.new_ref g_store ev ))
+  else return ev  
+  
 let eval_prog (AProg(_,e)) =
   eval_expr e         
 
@@ -107,5 +142,9 @@ let interp (s:string) : exp_val result =
   let c = s |> parse |> eval_prog
   in run c
 
-
-
+let interpf (s:string) : exp_val result =
+  let s = String.trim s (* remove leading and trailing spaces *)
+  in let file_name =  (* allow rec to be optional *)
+    match String.index_opt s '.' with None -> s^".exr" | _ -> s 
+  in interp @@ read_file file_name
+  
